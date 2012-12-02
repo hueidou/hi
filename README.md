@@ -15,3 +15,7 @@
 -------
 cmtlist /qcmt  
 http://hi.bdimg.com/static/qcomment/js/qcmt_import.js?v=6ba41c3a.js
+
+其他
+---
+确保文章所有人可见，仅自己可见的文章不可导出，待程序改善或者修改权限。
