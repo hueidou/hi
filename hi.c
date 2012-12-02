@@ -34,8 +34,8 @@ int hi_exist(char *page)
 static void usage()
 {
 	printf("\n\tUsage: hi [hostname]\n");
-	printf("\t   -a: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
-	printf("\t   -b: bbbbbbbbbbbbbbbbbbb\n");
+	printf("\t   -a: nothing to do.\n");
+	printf("\t   -b: nothing to do.\n");
 	printf("\n");
 }
 
@@ -61,46 +61,32 @@ int main(int argc, char *argv[])
     /* http://hi.baidu.com/hueidou163/archive?type=tag
      * /archive?type=tag
      * /archive?type=tag&page=2
-     */
-    curl(strlink(host, "/", hi_name, "/archive?type=tag&page=1", "__Last"));
-	//curl("hi.baidu.com/hueidou163/archive?type=tag&page=1");
-	/*
+     *
+	 *
 	 * 		var qPagerInfo = {
 			allCount: '142',
 			pageSize: '100',
 			curPage: '1'
 		}; 
 	 */
-	int allCount, pageSize;
-	/* some func */
-	allCount = 142;
-	pageSize = 100;
 
-	if (allCount == 0)
+	int i, pageCount;
+	char page_no[10];
+	char *tag_page;
+
+	for (i = 1; ; i++)
 	{
-		printf("not exist item.\n");
-		return 0;
-	}
+		/* get */
+		sprintf(page_no, "%d\0", i);
+		tag_page = strlink(host, "/", hi_name, "/archive?type=tag&page=", page_no, "__Last");
+		curl(tag_page);
 
-	int i;
-	char tag_page_num[10] = "1";
-	for (i = 2; ; ++i)
-	{
-		// 分析链接
-		 get_tag_page(strlink(hi_name, "/archive?type=tag&page=", tag_page_num, "__Last"));
-		//get_tag_page("hueidou163/archive?type=tag&page=1");
-
-		if (i <= ((allCount - 1) / pageSize + 1))
+		/* analy */
+		tag_page = strlink(hi_name, "/archive?type=tag&page=", page_no, "__Last");
+		pageCount = get_tag_page(tag_page);
+		if (!pageCount)
 		{
-			// 获取下一个
-			sprintf(tag_page_num, "%d\0", i);
-			curl(strlink(host, "/", hi_name, "/archive?type=tag&page=", tag_page_num, "__Last"));
-			//curl("hi.baidu.com/hueidou163/archive?type=tag&page=2");
-	
-		}
-		else
-		{
-			return 0;
+			break;
 		}
 	}
 

@@ -21,7 +21,7 @@ static char *substr(const char *str, unsigned start,
 /* 
  * path: 本地文件路径 
  */
-void get_tag_page(char *path)
+int get_tag_page(char *path)
 {
 	/* 
 	 * <a href="http://hi.baidu.com/hueidou163/item/2713d25bccbb60cdd3e10ca4" class="blog-item blog-text" id="17268399" target="_blank" data-timestamp="1316612396"><div class="text-container">忽然间，想要去很远</div></a> 
@@ -31,6 +31,8 @@ void get_tag_page(char *path)
 	regex_t preg;
 	char *line = malloc(LINE_CAPACITY);
 	regmatch_t pmatch;
+	int pageCount = 0;
+	char *url;
 
 	const char *pattern = "<a href=\"http://hi.baidu.com/[^>]*blog-item blog-text";
 
@@ -49,15 +51,17 @@ void get_tag_page(char *path)
 				break;
 			}
 
-			printf("%s\n", substr(line, pmatch.rm_so + 16, pmatch.rm_eo - 28));
-			//printf("%s\n", substr(line, pmatch.rm_so, pmatch.rm_eo));
+			pageCount++;
+			// printf("%s\n", substr(line, pmatch.rm_so + 16, pmatch.rm_eo - 28));
+			url = substr(line, pmatch.rm_so + 16, pmatch.rm_eo - 28);
+			curl(url);
 
 			line += pmatch.rm_eo;
 		}
 	}
 
-
-
 	fclose(fp);
 	regfree(&preg);
+
+	return pageCount;
 }
