@@ -1,34 +1,25 @@
 #include <stdio.h>
 #include "utils_rewite.h"
 
+#define ID_LENGTH	24
+
 char *host = "hi.baidu.com";
 char *hi_name;
+FILE *idfile;
 
+/* some works of init
+ * 创建必要的目录结构
+ */
 void hi_init()
 {
-    // 创建必要的目录结构
+	mkdir(host, 0775);
+	chdir(host);
     mkdir(hi_name, 0775);
     char *item = strlink(hi_name, "/item", "__Last");
     mkdir(item, 0775);
-}
 
-int hi_exist(char *page)
-{
-    /*
-        GET /asdfasdfasdfasdfadsf HTTP/1.1
-        Host: hi.baidu.com
-
-        HTTP/1.1 302 Found
-        Set-Cookie: BAIDUID=02B05E0906C41DE9E936F3D071987140:FG=1; max-age=31536000; expires=Thu, 28-Nov-13 06:23:45 GMT; domain=.baidu.com; path=/; version=1
-        P3P: CP=" OTI DSP COR IVA OUR IND COM "
-        Location: /com/error/?from=blog
-        Content-type: text/html
-        Content-Length: 0
-        Connection: close
-        Date: Wed, 28 Nov 2012 06:23:45 GMT
-        Server: apache
-    */
-    return 1;
+    mkdir("qcmt", 0775);
+    mkdir("qcmt/data", 0775);
 }
 
 static void usage()
@@ -49,30 +40,26 @@ int main(int argc, char *argv[])
 
     hi_name = argv[1];
 
-    if (!hi_exist(hi_name))
+    /* 判断hi是否存在或者可读 */
+    if (curl(strlink(host, "/", hi_name, "__Last")))
     {
-    	printf("\n%s/%s isn't exist.\n", host, hi_name);
+    	printf("%s/%s isn't exist or something wrong.\n", host, hi_name);
+    	printf("\n");
     	return -1;
     }
 
-    /* some works of init */
     hi_init();
 
-    /* http://hi.baidu.com/hueidou163/archive?type=tag
-     * /archive?type=tag
-     * /archive?type=tag&page=2
-     *
-	 *
-	 * 		var qPagerInfo = {
-			allCount: '142',
-			pageSize: '100',
-			curPage: '1'
-		}; 
+	/* 
+	 * 文章下载
 	 */
+	 printf("page downloading...\n");
 
 	int i, pageCount;
 	char page_no[10];
 	char *tag_page;
+
+	idfile = fopen(strlink(hi_name, ".id", "__Last"), "w+");
 
 	for (i = 1; ; i++)
 	{
@@ -89,6 +76,33 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
+
+	fclose(idfile);
+
+	/* 
+	 * 评论下载
+	 * 遍历item, 或者读取id文件
+	 */
+	printf("comment downloading...\n");
+
+	idfile = fopen(strlink(hi_name, ".id", "__Last"), "r");
+	char id_arr[ID_LENGTH + 1] = {0};
+	char *id = id_arr;
+	char *qcmt = "hi.baidu.com/qcmt/data/cmtlist?thread_id_enc=";
+
+	while (id = fgets(id, ID_LENGTH + 1, idfile))
+	{
+		curl(strlink(qcmt, id, "__Last"));
+		fgets(id, 2, idfile);	// 读取'\n'
+	}
+
+	fclose(idfile);
+
+
+	/*
+	 * 结束 
+	 */
+	printf("OK.\n");
 
 	return 0;
 }

@@ -5,9 +5,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-
-FILE *file;
-
 // size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream)
 // {
 //     int written = fwrite(ptr, size, nmemb, file);
@@ -16,8 +13,7 @@ FILE *file;
 
 int curl(char *url)
 {
-    // printf("curl: %s\n", url);
-
+    FILE *file;
     CURL *curl;
     CURLcode ret;
     char *path;
@@ -43,19 +39,22 @@ int curl(char *url)
     curl_easy_setopt(curl, CURLOPT_FORBID_REUSE, 1);
 
     /* 可以通过 CURLOPT_WRITEDATA属性给默认回调函数传递一个已经打开的文件指针，用于将数据输出到文件里。 */
-    file = fopen(path, "w+");
+    file = fopen(path, "w");
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)file);
     //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data); 
 
     /* Allow curl to perform the action */
     ret = curl_easy_perform(curl);
 
+    long response_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
     curl_easy_cleanup(curl);
     curl_slist_free_all(headers);
     fclose(file);
 
     /* ret == 0 means everything is OK. */ 
-    if (ret != 0)
+    if (ret != 0 || response_code != 200)
     {
         return -1;
     }

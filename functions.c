@@ -6,6 +6,8 @@
 
 #define LINE_CAPACITY	(1024 * 1024)
 
+extern FILE *idfile;
+
 static char *substr(const char *str, unsigned start, 
 	unsigned end)
 {
@@ -33,6 +35,7 @@ int get_tag_page(char *path)
 	regmatch_t pmatch;
 	int pageCount = 0;
 	char *url;
+	char *id;
 
 	const char *pattern = "<a href=\"http://hi.baidu.com/[^>]*blog-item blog-text";
 
@@ -55,6 +58,11 @@ int get_tag_page(char *path)
 			// printf("%s\n", substr(line, pmatch.rm_so + 16, pmatch.rm_eo - 28));
 			url = substr(line, pmatch.rm_so + 16, pmatch.rm_eo - 28);
 			curl(url);
+
+			id = rindex(url, '/');
+			id++;
+			fprintf(idfile, "%s\n", id);
+			fflush(idfile);
 
 			line += pmatch.rm_eo;
 		}
