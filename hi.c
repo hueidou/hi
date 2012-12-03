@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 	/* 
 	 * 文章下载
 	 */
-	 printf("page downloading...\n");
+	printf("page downloading...\n");
 
 	int i, pageCount;
 	char page_no[10];
