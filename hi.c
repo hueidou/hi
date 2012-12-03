@@ -14,12 +14,12 @@ void hi_init()
 {
 	mkdir(host, 0775);
 	chdir(host);
-    mkdir(hi_name, 0775);
-    char *item = strlink(hi_name, "/item", "__Last");
-    mkdir(item, 0775);
+	mkdir(hi_name, 0775);
+	char *item = strlink(hi_name, "/item", "__Last");
+	mkdir(item, 0775);
 
-    mkdir("qcmt", 0775);
-    mkdir("qcmt/data", 0775);
+	mkdir("qcmt", 0775);
+	mkdir("qcmt/data", 0775);
 }
 
 static void usage()
@@ -33,22 +33,22 @@ static void usage()
 int main(int argc, char *argv[])
 {
 	if (argc != 2)
-    {
-        usage();
-        return 0;
-    }
+	{
+		usage();
+		return 0;
+	}
 
-    hi_name = argv[1];
+	hi_name = argv[1];
 
-    /* 判断hi是否存在或者可读 */
-    if (curl(strlink(host, "/", hi_name, "__Last")))
-    {
-    	printf("%s/%s isn't exist or something wrong.\n", host, hi_name);
-    	printf("\n");
-    	return -1;
-    }
+	/* 判断hi是否存在或者可读 */
+	if (curl(strlink(host, "/", hi_name, "__Last")))
+	{
+		printf("%s/%s isn't exist or something wrong.\n", host, hi_name);
+		printf("\n");
+		return -1;
+	}
 
-    hi_init();
+	hi_init();
 
 	/* 
 	 * 文章下载
