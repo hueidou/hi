@@ -5,7 +5,7 @@
 
 char *host = "hi.baidu.com";
 char *hi_name;
-FILE *idfile;
+extern FILE *idfile;
 
 /* some works of init
  * 创建必要的目录结构
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 	fclose(idfile);
 
 	/* 
-	 * 评论下载
+	 * 评论/图片下载
 	 * 遍历item, 或者读取id文件
 	 */
 	printf("comment downloading...\n");

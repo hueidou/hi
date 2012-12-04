@@ -6,13 +6,18 @@
 
 #define LINE_CAPACITY	(1024 * 1024)
 
-extern FILE *idfile;
 
-static char *substr(const char *str, unsigned start, 
-	unsigned end)
+FILE *idfile;
+
+static char *substr(const char *str, int start, int end)
 {
-	unsigned n = end - start;
 	char *sub, *subtemp;
+	int n;
+
+	if ((n = end - start) <= 0)
+	{
+		return NULL;
+	}
 	sub = malloc((n + 1) * sizeof(char));
 	strncpy(sub, str + start, n);
 	sub[n] = 0;
@@ -72,4 +77,29 @@ int get_tag_page(char *path)
 	regfree(&preg);
 
 	return pageCount;
+}
+
+/* 
+ * 匹配字符串
+ *
+ * test: 需要匹配的字符串
+ * pattern: 模式
+ * rm_eo: 匹配尾偏移量
+ * add: 左侧忽略的字符数
+ * sub: 右侧忽略的字符数
+ */
+char *match(char *text, const char *pattern, int *rm_eo, int add, int sub)
+{
+	char *str;
+	regex_t preg;
+	regmatch_t pmatch;
+
+	if (text == NULL || pattern == NULL) { return NULL; }
+	if (regcomp(&preg, pattern, 0)) { return NULL; }
+	if (regexec(&preg, text, 1, &pmatch, 0)) { return NULL;	}
+
+	*rm_eo = pmatch.rm_eo;
+	
+	str = substr(text, pmatch.rm_so + add, pmatch.rm_eo - sub);
+	return str;
 }

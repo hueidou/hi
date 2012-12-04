@@ -2,11 +2,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern int curl(char *url);
+// extern int curl(char *url);
+extern char *match(char *text, const char *pattern, int *rm_eo, int add, int sub);
 
 int main(int argc, char *argv[])
 {
-    printf("%d\n", curl("hi.baidu.com/avapxia"));
-    printf("%d\n", curl("hi.baidu.com/hueidou163"));
-    printf("%d\n", curl("hi.baidu.com/hueidou163a"));
+	char *s;
+	char *str = "aaaaa";
+	int offset;
+	while ((s = match(str, "a", &offset, 0, 0)) != NULL)
+	{
+		printf("%s\n", s);
+		str += offset;
+	}
+
+	return 0;
 }
