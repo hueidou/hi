@@ -1,324 +1,91 @@
-#include <stdio.h>
-#include <string.h>
+#include <stdio.h> 
+#include <string.h> 
+#include <curl/curl.h> 
 #include <strings.h>
-#include <stdarg.h>
 #include <stdlib.h>
-#include <math.h>
-#include <sys/socket.h>
-#include "utils.h"
-#include <netdb.h>  // gethostbyname
-#include <errno.h>
-#include <unistd.h> // getcwd
+#include <stdarg.h>
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <regex.h>
 
+// size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream)
+// {
+//	 int written = fwrite(ptr, size, nmemb, file);
+//	 return written;
+// }
 
-#define BUFLEN  128
-
-// static struct sockaddr_in sockaddr_in1;
-static int port = 80;
-
-FILE *cin, *cout;
-
-/*
- * 
-#define FILEPATH_MAX (80)
-int main(){
-	char *file_path_getcwd;
-	file_path_getcwd=(char *)malloc(FILEPATH_MAX);
-	getcwd(file_path_getcwd,FILEPATH_MAX);
-	printf("%s",file_path_getcwd);
-}
- */
-
-// ssize_t readlink(const char *path, char *buf, size_t bufsiz);
-
-// readlink("/proc/self/exe",);
-
-	   
-
-/*
- * char *getcwd(char *buf, size_t size);
- */
-void cutUrl(char *url, char *host, char *path, char *file)
+int curl(char *url)
 {
-	// http://hi.baidu.com/hueidou163/item/2713d25bccbb60cdd3e10ca4
-	// hi.baidu.com <--> host
-	// /hueidou163/item/2713d25bccbb60cdd3e10ca4 <--> path
-	// 2713d25bccbb60cdd3e10ca4 <--> file
-	char *str = url;
-	/*
-	   char *index(const char *s, int c);
-	   char *rindex(const char *s, int c);
-	*/
-	char *str1 = index(str, '/');
-	str1 += 2;
-	char *host1 = host;
-	while (*str1 != '/')
+	FILE *file;
+	CURL *curl;
+	CURLcode ret;
+	char *path;
+	struct curl_slist *headers = NULL;
+
+	path = index(url, '/');
+	path++;
+
+	/* First step, init curl */
+	curl = curl_easy_init();
+	if (!curl)
 	{
-		*host1 = *str1;
-		host1++;
-		str1++;
+		return -1;
 	}
-	*host1 = '\0';
 
-	char * str2 = index(url, '/');
-	str2 += 2;
-	str2 = index(str2, '/');
-	strcpy(path, str2);
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	
+	/* HTTP HEADER */
+	headers = curl_slist_append(headers, "Connection: close");
+	headers = curl_slist_append(headers, "Accept-Charset: utf-8");
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
-	char * str3 = rindex(url, '/');
-	str3++;
-	strcpy(file, str3);
+	curl_easy_setopt(curl, CURLOPT_FORBID_REUSE, 1);
+
+	/* 可以通过 CURLOPT_WRITEDATA属性给默认回调函数传递一个已经打开的文件指针，用于将数据输出到文件里。 */
+	file = fopen(path, "w");
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)file);
+	//curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data); 
+
+	/* Allow curl to perform the action */
+	ret = curl_easy_perform(curl);
+
+	long response_code = 0;
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+	curl_easy_cleanup(curl);
+	curl_slist_free_all(headers);
+	fclose(file);
+
+	/* ret == 0 means everything is OK. */ 
+	if (ret != 0 || response_code != 200)
+	{
+		return -1;
+	}
+
+	return 0;
 }
 
-
-/*
- * 获取html内容到文件
- * http://hi.baidu.com/hueidou163/archive
- */
-void curl(char * host, char *path, char * file)
+char *strlink(char *str1, ...)
 {
-
-	// struct hostent *hp = 0; // NULL == 0
-	int s;  // socket fd
-	int err;
-	int c;
-	struct addrinfo	 hint;
-	struct addrinfo	 *ailist, *aip;
-
-	// s = socket(AF_INET, SOCK_STREAM, 0);
-	// if (s < 0) {
-	//	 fprintf(stderr, "create socket error\n");
-	//	 return;
-	// }
-	// struct sockaddr_in a;
-	// struct sockaddr_in *sin = &a;
-	// // printf("%d,%d\n", sizeof(sin), sizeof(*sin));
-	// sin->sin_family = AF_INET;
-	// sin->sin_port = 80;
-	// inet_pton(AF_INET, "127.0.0.1", &sin->sin_addr);
-	// printf("%d\n", sin->sin_family);
-	// printf("%d\n", sin->sin_port);
-
-	// char str[INET_ADDRSTRLEN];
-	// inet_ntop(AF_INET, &sin->sin_addr, str, INET_ADDRSTRLEN);
-	// printf("%s\n", str);
-
-	// c = connect(s, (struct sockaddr *)sin, sizeof(*sin));
-	// if (c < 0) {
-	//	 fprintf(stderr, "connect error: %d\n", errno);
-	//	 fprintf(stderr, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", 
-	//		 EACCES, EPERM, EADDRINUSE, EAFNOSUPPORT, EAGAIN, EALREADY, EBADF,
-	//		 ECONNREFUSED, EFAULT, EINPROGRESS, EINTR, EISCONN, ENETUNREACH, 
-	//		 ENOTSOCK, ETIMEDOUT);
-	//	 return;
-	// }
-
-
-
-	// hi.baidu.com
-	// /hueidou163/archive
-	// 基于域名的的虚拟主机是根据客户端提交的HTTP头中的关于主机名的部分决定的。 使用这种技术，很多虚拟主机可以享用同一个IP地址。
-
-	char * request = strlink(
-		"GET ", path, " HTTP/1.1\r\n",
-		"Host: ", host, "\r\n",
-		"Connection: close\r\n",
-		"Accept-Charset: utf-8\r\n",
-		"\r\n\r\n",
-		"__Last");
-	fprintf(stderr, "%s\n", request);
-		// goto a;
-
-	// int socket(int domain, int type, int protocol);
-	// int shutdown(int ockfd, int how);
-
-	// IPv4 套接字地址结构配置
-	// memset(&sockaddr_in1, 0, sizeof(sockaddr_in1));
-	// sockaddr_in1.sin_family = AF_INET;
-	// sockaddr_in1.sin_port = port;
-
-	// 获取主机信息
-	// hp = gethostbyname(host);   //===============================
-	// if (hp == NULL) {
-	//	 fprintf(stderr, "resolve error\n");
-	//	 return;
-	// }
-	// printf("*h_name: %s\n", hp->h_name);
-	// if (hp->h_addr_list[0])
-	// {
-	//	 printf("**h_addr_list: %s\n", inet_ntop(hp->h_addr_list[0]));
-	// }
-
-	// 配置过滤器
-	hint.ai_flags = AI_CANONNAME;
-	hint.ai_family = AF_INET;   // ipv4 internet domain
-	hint.ai_socktype = SOCK_STREAM; // TCP
-	hint.ai_protocol = 0;
-	hint.ai_addrlen = 0;
-	hint.ai_canonname = NULL;
-	hint.ai_addr = NULL;
-	hint.ai_next = NULL;
-
-	fprintf(stderr, "%s\n", "funcitons begin");
-
-	// 获取/检查struct addrinfo链表
-	if ((err = getaddrinfo(host, "http", &hint, &ailist)) != 0)
-		fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(err));
-
-	fprintf(stderr, "%s\n", "getaddrinfo");
-
-	if (ailist == NULL)
-	{
-		fprintf(stderr, "%s\n", "ailist is empty");
-		return;
-	}
-
-	// for (aip = ailist; aip != NULL; aip = aip->ai_next) {
-	//	 print_flags(aip);
-	//	 print_family(aip);
-	//	 print_type(aip);
-	//	 print_protocol(aip);
-	//	 printf("\n\thost %s", aip->ai_canonname?aip->ai_canonname:"-");
-	//	 if (aip->ai_family == AF_INET) {
-	//		 sinp = (struct sockaddr_in *)aip->ai_addr;
-	//		 addr = inet_ntop(AF_INET, &sinp->sin_addr, abuf, INET_ADDRSTRLEN);
-	//		 printf(" address %s", addr?addr:"unknow");
-	//		 printf(" port %d", ntohs(sinp->sin_port));
-	//	 }
-	//	 printf("\n");
-	// }
-
-	// sockaddr_in1.sin_family = hp->h_addrtype;  /* address type */
-
-	// 将地址填充到sockaddr_in的sin_addr
-	// IPv4 address
-	// if (hp->h_length > (int)sizeof(sockaddr_in1.sin_addr)) {
-	//	 hp->h_length = sizeof(sockaddr_in1.sin_addr);
-	// }
-	// memcpy(&sockaddr_in1.sin_addr, hp->h_addr_list[0], hp->h_length);
-
-	/* 创建socket */
-	s = socket(AF_INET, SOCK_STREAM, 0);
-	if (s < 0) {
-		fprintf(stderr, "create socket error\n");
-		return;
-	}
-	fprintf(stderr, "%s\n", "create socket success");
-
-	// sockaddr_in1.sin_port = port;  /* port number */
-
-
-	// memcpy(&sockaddr_in1.sin_addr, ailist->, hp->h_length);
-	/* 建立连接 
-	 * 逐次尝试hostent->h_addr_list内的network address
-	 */
-	while (connect(s, ailist->ai_addr, ailist->ai_addrlen) < 0)
-	{
-		if (ailist->ai_next == NULL)
-		{
-			fprintf(stderr, "%s\n", "connect error");
-			return;
-		}
-		ailist = ailist->ai_next;
-	}
-
-	fprintf(stderr, "%s\n", "connect success");
-
-	//	 if (hp && hp->h_addr_list[1])
-	//	 {
-	//		 /* inet_neoa, inet_addr 二进制地址格式/点分十进制字符串 */
-	//		 fprintf(stderr, "ftp: connect to address %s: ", inet_ntoa(sockaddr_in1.sin_addr));
-
-	//		 hp->h_addr_list++;
-	//		 memcpy(&sockaddr_in1.sin_addr, hp->h_addr_list[0], hp->h_length);
-
-	//		 fprintf(stdout, "Trying %s...\n", inet_ntoa(sockaddr_in1.sin_addr));
-
-	//		 /* 重新建立socket */
-	//		 (void) close(s);
-	//		 s = socket(sockaddr_in1.sin_family, SOCK_STREAM, 0);
-	//		 if (s < 0) {
-	//			 fprintf(stderr, "create socket error\n");
-	//			 return;
-	//		 }
-	//		 continue;
-	//	 }
-	//	 fprintf(stderr, "connect error\n");
-
-	//	 // bad
-	//	 (void) close(s);
-	//	 return;
-	// }
-
-	cin = fdopen(s, "r");
-	cout = fdopen(s, "w");
-	if (cin == NULL || cout == NULL) {
-		fprintf(stderr, "fdopen failed.\n");
-		if (cin)
-			(void) fclose(cin);
-		if (cout)
-			(void) fclose(cout);
-		// bad
-		(void) close(s);
-		return;
-	}
-	fprintf(stderr, "%s\n", "set io success");
-
-	// int fputs(const char *s, FILE *stream);
-
-	write(s, request, strlen(request));
-
-	char buf[BUFLEN];
-	int n;
-
-	int fd = open(file, O_WRONLY | O_CREAT, 0775);
-
-	while ((n = recv(s, buf, BUFLEN, 0)) > 0)
-	{
-		write(fd, buf, n);
-	}
-	if (n < 0)
-	{
-		fprintf(stderr, "%s\n", "recv error");
-	}
-
-	close(fd);
-
-	// char g;
-	// while ((g = getc(cin)) != '\0')
-	// {
-	//	 putchar(g);
-	// }
-
-	return;
-}
-
-char * getHost(char * url)
-{
-}
-
-char * getGet(char * url)
-{
-
-}
-
-char * strlink(char * str1, ...)
-{
-	char * str = malloc(sizeof(char));
+	char *str = malloc(sizeof(char));
+	memset(str, 0, 1);
+	// char *str = NULL;
 
 	va_list arg_ptr; // 参数列表指针
 
 	va_start(arg_ptr, str1); // 指向固定参数
 	// va_copy(dest, src)
 
-	char * strtemp = str1;
+	char *strtemp = str1;
 
+	char *p;
 	while(abs(strcmp(strtemp, "__Last")))
 	{
-		str = realloc(str, strlen(str) + strlen(strtemp));
+		p = realloc(str, strlen(str) + strlen(strtemp) + 1);
+		if (p == NULL)
+		{
+			return NULL;
+		}
+		str = p;
 		strcat(str, strtemp);
 
 		strtemp = va_arg(arg_ptr, char *); // 返回char*参数
@@ -326,5 +93,46 @@ char * strlink(char * str1, ...)
 
 	va_end(arg_ptr); // va_start配套
 
+	// printf("%s\n", str);
+	return str;
+}
+
+char *substr(const char *str, int start, int end)
+{
+	char *sub, *subtemp;
+	int n;
+
+	if ((n = end - start) <= 0)
+	{
+		return NULL;
+	}
+	sub = malloc((n + 1) * sizeof(char));
+	strncpy(sub, str + start, n);
+	sub[n] = 0;
+	return sub;
+}
+
+/* 
+ * 匹配字符串
+ *
+ * test: 需要匹配的字符串
+ * pattern: 模式
+ * rm_eo: 匹配尾偏移量
+ * add: 左侧忽略的字符数
+ * sub: 右侧忽略的字符数
+ */
+char *match(char *text, const char *pattern, int *rm_eo, int add, int sub)
+{
+	char *str;
+	regex_t preg;
+	regmatch_t pmatch;
+
+	if (text == NULL || pattern == NULL) { return NULL; }
+	if (regcomp(&preg, pattern, 0)) { return NULL; }
+	if (regexec(&preg, text, 1, &pmatch, 0)) { return NULL;	}
+
+	*rm_eo = pmatch.rm_eo;
+	
+	str = substr(text, pmatch.rm_so + add, pmatch.rm_eo - sub);
 	return str;
 }

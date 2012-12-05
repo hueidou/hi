@@ -1,1 +1,1 @@
-char *hasprev(char *);
+int get_tag_page(char *path);
