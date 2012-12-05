@@ -9,12 +9,12 @@
 
 文章
 ---
-/archive?type=tag&page=1
+/archive?type=tag&page=1  
 /item/2713d25bccbb60cdd3e10ca4
 
 评论信息
 -------
-\http://hi.baidu.com/qcmt/data/cmtlist?thread_id_enc=974c6bc2864126b90d0a7bbe
+/qcmt/data/cmtlist?thread_id_enc=974c6bc2864126b90d0a7bbe
 
 其他
 ---
