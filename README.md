@@ -3,10 +3,10 @@
 
 简介
 ---
-hi可以简单的将百度博客导出到Jekyll.post的格式。
-测试帐户：[7kaqi7](http://hi.baidu.com/7kaqi7/)
-导出后的博客：
-查看文件：
+* hi可以简单的将百度博客导出到Jekyll.post的格式。
+* 测试帐户：[7kaqi7](http://hi.baidu.com/7kaqi7/)
+* 导出后的博客：
+* 查看文件：
 
 Usage: `./hi [hi_name]`
 
