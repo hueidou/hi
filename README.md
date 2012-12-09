@@ -1,4 +1,6 @@
-a example of hi
----------------
+hi gh-pages
+-----------
+
+A example of hi
 
 Link: [7kaqi7](http://hueidou.github.com/hi/)
