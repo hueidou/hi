@@ -18,8 +18,7 @@ Usage: `./hi [hi_name]`
 其他
 ---
 * 仅自己可见的文章不可导出，待程序改善或者自行修改权限。
-* 文章内有代码框的会出现错误。待程序改善。
-* 百度站内图片引用被防盗链，待程序改善。
+* 文章内有代码框/特殊字符的会出现错误。待程序改善。
 * [PCRE](http://www.pcre.org/)
 * [CURL](http://curl.haxx.se/)
 * [Html2text项目(Python)](http://github.com/aaronsw/html2text/)
