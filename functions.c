@@ -6,67 +6,32 @@
 #include "utils.h"
 #include "functions.h"
 
-#define LINE_CAPACITY	(1024 * 1024)
+#define LINE_CAPACITY	(1024 * 100)
 #define ID_LENGTH	(24)
 
 FILE *idfile;
+static int count;	// 计数用
+
+extern char *host;
+extern char *hi_name;
 
 /* 
- * path: 本地文件路径 
  */
-int get_tag_page(char *path)
+int hi_exist()
 {
-	/* 
-	 * <a href="http://hi.baidu.com/hueidou163/item/2713d25bccbb60cdd3e10ca4" class="blog-item blog-text" id="17268399" target="_blank" data-timestamp="1316612396"><div class="text-container">忽然间，想要去很远</div></a> 
-	 * /<a href="http:\/\/hi.baidu.com\/[^>]*blog-item blog-text/
-	 */
-	FILE *fp;
-	regex_t preg;
-	char *line = malloc(LINE_CAPACITY);
-	regmatch_t pmatch;
-	int pageCount = 0;
-	char *url;
-	char *id;
-
-	const char *pattern = "<a href=\"http://hi.baidu.com/[^>]*blog-item blog-text";
-
-	fp = fopen(path, "r");
-	if (fp == NULL) { return; }
-
-	/* compile regex */
-	if (regcomp(&preg, pattern, 0)) { return; }
-
-	while (fgets(line, LINE_CAPACITY, fp) != NULL)
+	if (curl(strlink(host, "/", hi_name, "__Last"), NULL))
 	{
-		while (1)
-		{
-			if (regexec(&preg, line, 1, &pmatch, 0))
-			{
-				break;
-			}
-
-			pageCount++;
-			// printf("%s\n", substr(line, pmatch.rm_so + 16, pmatch.rm_eo - 28));
-			url = substr(line, pmatch.rm_so + 16, pmatch.rm_eo - 28);
-			curl(url);
-
-			id = rindex(url, '/');
-			id++;
-			fprintf(idfile, "%s\n", id);
-			fflush(idfile);
-
-			line += pmatch.rm_eo;
-		}
+		return 1;
 	}
-
-	fclose(fp);
-	regfree(&preg);
-
-	return pageCount;
+	return 0;
 }
 
-void pagedown(char *host, char *hi_name)
+/*
+ * pagedown 
+ */
+void pagedown()
 {
+	// verbose
 	printf("page downloading...\n");
 
 	int i, pageCount;
@@ -75,12 +40,13 @@ void pagedown(char *host, char *hi_name)
 
 	idfile = fopen(strlink(hi_name, ".id", "__Last"), "w+");
 
+	count = 0;	// 开始计数
 	for (i = 1; ; i++)
 	{
 		/* get */
 		sprintf(page_no, "%d\0", i);
 		tag_page = strlink(host, "/", hi_name, "/archive?type=tag&page=", page_no, "__Last");
-		curl(tag_page);
+		curl(tag_page, NULL);
 
 		/* analy */
 		tag_page = strlink(hi_name, "/archive?type=tag&page=", page_no, "__Last");
@@ -94,7 +60,55 @@ void pagedown(char *host, char *hi_name)
 	fclose(idfile);
 }
 
-void qcmtdown(char *hi_name)
+/* 
+ * path: 本地文件路径 
+ * 返回: 页面pageCount的值
+ * <a href="http://hi.baidu.com/hueidou163/item/2713d25bccbb60cdd3e10ca4" class="blog-item blog-text" id="17268399" target="_blank" data-timestamp="1316612396"><div class="text-container">忽然间，想要去很远</div></a> 
+ */
+int get_tag_page(char *path)
+{
+	char *html;
+	char *resource;
+
+	resource = file2str(path);
+	html = resource;
+	if (html == NULL)
+	{
+		return 0;
+	}
+
+	const char *reg_item = "<a href=\"http://([^>]*?)\" class=\"blog-item blog-text\"";
+	char *url;
+	int offset;
+	int pageCount = 0;
+	char *id;
+
+	// char *match_pcre(char *text, const char *pattern, int *rm_eo, int index, int add, int sub);
+	while ((url = match_pcre(html, reg_item, &offset, 1, 0, 0)) != NULL)
+	{
+		/* 下载 item */
+		curl(url, NULL);
+
+		/* 将ids写入idfile */
+		id = rindex(url, '/');
+		id++;
+		fprintf(idfile, "%s\n", id);
+
+		// verbose
+		printf("%d\t%s\n", ++count, id);
+
+		pageCount++;
+		html += offset;
+	}
+
+	free(resource);
+	return pageCount;
+}
+
+/* 
+ * 评论下载
+ */
+void qcmtdown()
 {
 	printf("comment downloading...\n");
 
@@ -103,30 +117,32 @@ void qcmtdown(char *hi_name)
 	char *id = id_arr;
 	char *qcmt = "hi.baidu.com/qcmt/data/cmtlist?thread_id_enc=";
 
+	count = 0;
 	while (id = fgets(id, ID_LENGTH + 1, idfile))
 	{
-		curl(strlink(qcmt, id, "__Last"));
+		curl(strlink(qcmt, id, "__Last"), NULL);
+		printf("%d\t%s\n", ++count, id);
 		fgets(id, 2, idfile);	// 读取'\n'
 	}
 
 	fclose(idfile);
 }
 
-void htmlconvert(char *hi_name)
+/*
+ * 转换 
+ */
+void htmlconvert()
 {
-	FILE *idfile;
-
 	printf("html converting...\n");
 
 	idfile = fopen(strlink(hi_name, ".id", "__Last"), "r");
 	char id_arr[ID_LENGTH + 1] = {0};
 	char *id = id_arr;
-	int count = 1;
 
+	count = 0;	// VERBOSE
 	while (id = fgets(id, ID_LENGTH + 1, idfile))
 	{
-		// hueidou163/item/...
-		printf("%d\t", count++);
+		printf("%d\t%s\n", ++count, id);	// VERBOSE
 		html2jekyll(strlink(hi_name, "/item/", id, "__Last"), strlink(hi_name, "/_posts", "__Last"), id);
 		fgets(id, 2, idfile);	// 读取'\n'
 	}
@@ -134,27 +150,18 @@ void htmlconvert(char *hi_name)
 	fclose(idfile);
 }
 
-void html2jekyll(char *htmlpath, char *mdir, char *id)
+void html2jekyll(char *path, char *mdir, char *id)
 {
-	printf("%s ", id);
+	/*  */
+	char *html;
+	char *resource;
 
-	int fileLen;
-	int offset = 0;
-
-	FILE *fp = fopen(htmlpath, "r");
-	if (fp == NULL)
+	resource = file2str(path);
+	html = resource;
+	if (html == NULL)
 	{
 		return;
 	}
-
-	fseek(fp, 0, SEEK_END);
-	fileLen = ftell(fp);
-	char *res = (char *)malloc(sizeof(char) * fileLen);
-	char *html = res;
-	// fseek(fp, 0, SEEK_SET);
-	rewind(fp);
-	fread(html, fileLen, sizeof(char), fp);
-	fclose(fp);
 
 	char *title;			// title: 傻子才悲伤
 	char *time;				// time: 2007-09-30 20:07
@@ -163,6 +170,8 @@ void html2jekyll(char *htmlpath, char *mdir, char *id)
 	char *pv;
 	char *comment;
 	char *share;
+
+	int offset = 0;
 
 	/* <div class=content-other-info>  <span>2010-06-09 19:24</span>  </div>
 	 * <div class=content-other-info>.*?(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}).*?</div>
@@ -191,6 +200,7 @@ void html2jekyll(char *htmlpath, char *mdir, char *id)
 	content = match_pcre(html, reg_content, &offset, 1, 0, 0);
 	html += offset;
 	offset = 0;
+	content = findimgs(content);
 
 	tags = match_pcre(html, reg_tags, &offset, 1, 0, 0);
 	html += offset;
@@ -207,14 +217,8 @@ void html2jekyll(char *htmlpath, char *mdir, char *id)
 
 	share = match_pcre(html, reg_share, &offset, 1, 0, 0);
 
-	// printf("%s\n", time);
-	// printf("%s\n", title);
-	// printf("%s\n", content);
-	// printf("%s\n", tags);
-	// printf("%s\n", pv);
-	// printf("%s\n", comment);
-	// printf("%s\n", share);
-	free(res);
+	// html解析完毕时
+	free(resource);
 
 	FILE *post;
 	char *date = substr(time, 0, 10);
@@ -248,7 +252,6 @@ void html2jekyll(char *htmlpath, char *mdir, char *id)
 	fprintf(post, "\n");
 
 	fclose(post);
-	printf("*\n");
 }
 
 /*
@@ -270,4 +273,91 @@ char *findtags(char *html)
 	}
 
 	return tags;
+}
+
+/*
+ * 发现图片链接，替换并下载 
+ * <img src="http://hiphotos.baidu.com/hueidou163/pic/item/e455fd64d7e8cecff63654fb.jpg" small="0" />
+ * <img small="0" src="http://hiphotos.baidu.com/hueidou163/pic/item/2663e0fdec64632a09244d93.jpg" />
+ * <img width="161" height="199" src="http://hiphotos.baidu.com/hueidou163/abpic/item/cee09abf8b1ad80718d81f05.jpg" small="0" style="width: 188px; height: 206px;" />
+ * <img title="点击查看大图" src="http://baike.baidu.com/pic/2/11835527535632421_small.jpg" />
+ * <img src="http://photo.southcn.com/upload/F43842003.11.20.10.5.5912.jpg" />
+ * <img src="http://img3.pcpop.com/upimg3/2008/1/2/0004625952.jpg" alt="点此在新窗口浏览图片" />
+ * <img src="http://imgsrc.baidu.com/baike/pic/item/58af236da2e79bcf431694f6.jpg" small="0" />
+ * <img src="http://img.baidu.com/hi/jx2/j_0004.gif" />
+ * <img height="132" src="http://tbn0.google.com/images?q=tbn:nl-BatuexLQBHM:http://foto.yculblog.com/jmadmen/2347.JPG" width="93" />
+ * <img src=http://asdf.com/a.jpg />
+ */
+char *findimgs(char *html)
+{
+	char *content = html;
+	char *reg_img = "<img .*?src=(\"?.*?\"?) .*?/>";
+	char *src;
+	int start, end;
+
+	while (match_pcre2(html, reg_img, &start, &end) != 0)
+	{
+		down_img(html, start, end);
+		html += end;
+	}
+
+	return content;
+}
+
+void down_img(char *html, int start, int end)
+{
+	char *url = substr(html, start, end);
+	if (*url == '"')
+	{
+		url++;
+		url[strlen(url) - 1] = 0;
+	}
+	printf("%s\n", url);
+
+	char *filename = rindex(url, '/');
+	char *src = strlink("/images", filename, "__Last");
+	char *filepath = strlink(hi_name, "/images", filename, "__Last");
+
+	curl(url, filepath);	// 下载图片
+
+	// 更改src
+	src = strlink("\"", src, "\"", "__Last");
+	strncpy2(html + start, src, end - start);
+}
+
+/* 以空格填充dest剩余区域 */
+char *strncpy2(char *dest, const char *src, size_t n)
+{
+   size_t i;
+
+   for (i = 0; i < n && src[i] != '\0'; i++)
+       dest[i] = src[i];
+   for ( ; i < n; i++)
+       dest[i] = ' ';
+
+   return dest;
+}
+
+/*
+ * 用后务必释放 
+ */
+char *file2str(char *path)
+{
+	FILE *fp;
+	int fileLen;
+	char *resource;
+
+	fp = fopen(path, "r");
+	if (fp == NULL)
+	{
+		return NULL;
+	}
+	fseek(fp, 0, SEEK_END);
+	fileLen = ftell(fp);
+	resource = (char *)malloc(sizeof(char) * fileLen);
+	rewind(fp);
+	fread(resource, fileLen, sizeof(char), fp);
+	fclose(fp);
+
+	return resource;
 }

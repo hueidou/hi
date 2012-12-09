@@ -14,16 +14,18 @@
 //	 return written;
 // }
 
-int curl(char *url)
+int curl(char *url, char *path)
 {
 	FILE *file;
 	CURL *curl;
 	CURLcode ret;
-	char *path;
 	struct curl_slist *headers = NULL;
 
-	path = index(url, '/');
-	path++;
+	if (path == NULL)
+	{
+		path = index(url, '/');
+		path++;
+	}
 
 	/* First step, init curl */
 	curl = curl_easy_init();
@@ -161,4 +163,29 @@ char *match_pcre(char *text, const char *pattern, int *rm_eo, int index, int add
 
 	str = substr(text, ovector[2 * index] + add, ovector[2 * index + 1] - sub);
 	return str;
+}
+
+int match_pcre2(char *text, const char *pattern, int *start, int *end)
+{
+	char *str;
+	pcre *pc;
+	int pe;
+	const char *errptr;
+	int erroffset;
+	int ovector[30];
+
+	if (text == NULL || pattern == NULL) { return 0; }
+	/* PCRE_DOTALL . matches anything including NL */
+	pc = pcre_compile(pattern, PCRE_DOTALL, &errptr, &erroffset, NULL);
+	pe = pcre_exec(pc, NULL, text, strlen(text), 0, 0, ovector, 30);
+
+	if (pe <= 1)
+	{
+		return 0;
+	}
+
+	*start = ovector[2];
+	*end = ovector[3];
+
+	return 1;
 }

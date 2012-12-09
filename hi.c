@@ -1,11 +1,10 @@
 #include <stdio.h>
-#include "utils.h"
 #include "functions.h"
 
 char *host = "hi.baidu.com";
 char *hi_name;
 
-/* some works of init
+/*
  * 创建必要的目录结构
  */
 void hi_init()
@@ -18,11 +17,12 @@ void hi_init()
 	mkdir(hi_name, 0775);
 
 	chdir(hi_name);
-	mkdir("item", 0775);
-	mkdir("_posts", 0775);
+	mkdir("item", 0775);		// 文章
+	mkdir("_posts", 0775);		// 转换后的文章
+	mkdir("images", 0775);		// 图片
 	chdir("..");
 
-	mkdir("qcmt", 0775);
+	mkdir("qcmt", 0775);		// 评论
 	mkdir("qcmt/data", 0775);
 }
 
@@ -45,9 +45,10 @@ int main(int argc, char *argv[])
 	hi_name = argv[1];
 
 	// 判断hi是否存在或者可读
-	if (curl(strlink(host, "/", hi_name, "__Last")))
+	if (hi_exist())
 	{
-		printf("%s/%s isn't exist or something wrong.\n", host, hi_name);
+		fprintf(stderr, "http://%s/%s isn't exist.\n", host, hi_name);
+		fprintf(stderr, "please check you hi name.\n");
 		return 0;
 	}
 
@@ -55,13 +56,13 @@ int main(int argc, char *argv[])
 	hi_init();
 
 	// 文章下载
-	pagedown(host, hi_name);
+	//pagedown();
 
 	// 评论下载
-	qcmtdown(hi_name);
+	//qcmtdown();
 
 	// 转换html为jekyll.md
-	htmlconvert(hi_name);
+	htmlconvert();
 
 	// 结束 
 	printf("OK.\n");

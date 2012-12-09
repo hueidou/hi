@@ -1,6 +1,11 @@
+int hi_exist();
 int get_tag_page(char *path);
-void qcmtdown(char *hi_name);
-void pagedown(char *host, char *hi_name);
-void htmlconvert(char *hi_name);
+void qcmtdown();
+void pagedown();
+void htmlconvert();
 void html2jekyll(char *htmlpath, char *mdir, char *id);
 char *findtags(char *html);
+char *findimgs(char *html);
+void down_img(char *html, int start, int end);
+char *strncpy2(char *dest, const char *src, size_t n);
+char *file2str(char *path);
