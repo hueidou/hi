@@ -226,7 +226,7 @@ void html2jekyll(char *htmlpath, char *mdir, char *id)
 	if (title != NULL) {
 		fprintf(post, "title: %s\n", title);
 	} else {
-		fprintf(post, "title: 无题");
+		fprintf(post, "title: 无题\n");
 	}
 	if (tags != NULL) {
 		fprintf(post, "tags: %s\n", tags);
