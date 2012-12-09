@@ -1,1 +1,4 @@
-a example of hi.
+a example of hi
+---------------
+
+Link: [7kaqi7](http://hueidou.github.com/hi/)
