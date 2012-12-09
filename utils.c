@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <sys/types.h>
 #include <regex.h>
+#include <pcre.h>
 
 // size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream)
 // {
@@ -102,7 +103,7 @@ char *substr(const char *str, int start, int end)
 	char *sub, *subtemp;
 	int n;
 
-	if ((n = end - start) <= 0)
+	if ((n = end - start) < 0)
 	{
 		return NULL;
 	}
@@ -134,5 +135,30 @@ char *match(char *text, const char *pattern, int *rm_eo, int add, int sub)
 	*rm_eo = pmatch.rm_eo;
 	
 	str = substr(text, pmatch.rm_so + add, pmatch.rm_eo - sub);
+	return str;
+}
+
+char *match_pcre(char *text, const char *pattern, int *rm_eo, int index, int add, int sub)
+{
+	char *str;
+	pcre *pc;
+	int pe;
+	const char *errptr;
+	int erroffset;
+	int ovector[30];
+
+	if (text == NULL || pattern == NULL) { return NULL; }
+	/* PCRE_DOTALL . matches anything including NL */
+	pc = pcre_compile(pattern, PCRE_DOTALL, &errptr, &erroffset, NULL);
+	pe = pcre_exec(pc, NULL, text, strlen(text), 0, 0, ovector, 30);
+
+	if (pe <= index)
+	{
+		return NULL;
+	}
+
+	*rm_eo = ovector[2 * index + 1];
+
+	str = substr(text, ovector[2 * index] + add, ovector[2 * index + 1] - sub);
 	return str;
 }
