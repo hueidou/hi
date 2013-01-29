@@ -56,10 +56,10 @@ int main(int argc, char *argv[])
 	hi_init();
 
 	// 文章下载
-	//pagedown();
+	pagedown();
 
 	// 评论下载
-	//qcmtdown();
+	qcmtdown();
 
 	// 转换html为jekyll.md
 	htmlconvert();
